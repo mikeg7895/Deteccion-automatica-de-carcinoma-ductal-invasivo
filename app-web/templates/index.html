@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <title>IDC</title>
+    <style>
+        .drop-zone {
+            border: 2px dashed #007bff;
+            padding: 50px;
+            text-align: center;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        .drop-zone.dragover {
+            background-color: #e0e0e0;
+        }
+        #imagePreview {
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+            display: none;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar" style="background: linear-gradient(to right, #d66b8f, #4f2359);">
+        <div class="container-fluid">
+          <span class="navbar-brand mb-0 h1">
+            <h4 style="color: #eae0e7;">Carcinoma ductal invasivo (IDC)</h4>
+            </span>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <form id="image-hisp" method="post" enctype="multipart/form-data">
+            <h2 class="text-center">Suba su imagen de hispatologia</h2>
+            <div id="dropZone" class="drop-zone">
+              <p>Arrastra los archivos aquí o haz clic para seleccionarlos</p>
+              <input type="file" id="fileInput" name="imageHispa" accept="image/*" class="d-none" required>
+            </div>
+            
+            <img id="imagePreview" src="" alt="Imagen subida" />
+            <div class="d-flex justify-content-center">
+                <button id="btn-sub" type="submit" class="btn btn-primary mt-3 d-none me-3">Clasificar</button>
+                <button id="btn-sec" type="button" class="btn btn-secondary mt-3 d-none">Subir otra imagen</button>
+            </div>  
+            
+            <h2 id="result" class="text-center"></h2>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        const dropZone = document.getElementById("dropZone");
+        const fileInput = document.getElementById("fileInput");
+        const imagePreview = document.getElementById("imagePreview");
+        const button = document.getElementById("btn-sub");
+        const buttonSec = document.getElementById("btn-sec");
+        const form = document.getElementById("image-hisp");
+        const res = document.getElementById("result");
+    
+        dropZone.addEventListener("click", () => fileInput.click());
+        buttonSec.addEventListener("click", () => {
+            fileInput.click();
+            res.innerHTML = "";
+        });
+    
+        dropZone.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          dropZone.classList.add("dragover");
+        });
+    
+        dropZone.addEventListener("dragleave", () => {
+          dropZone.classList.remove("dragover");
+        });
+    
+        dropZone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          dropZone.classList.remove("dragover");
+          const files = event.dataTransfer.files;
+          handleFiles(files);
+        });
+    
+        fileInput.addEventListener("change", (event) => {
+          const files = event.target.files;
+          handleFiles(files);
+        });
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+            fetch("/predict", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                res.innerHTML = data.message;
+                if (data.message === "IDC +") {
+                    res.style.color = "#4f2359";
+                } else {
+                    res.style.color = "#d66b8f";
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        });
+    
+        function handleFiles(files) {
+            const file = files[0];
+            if (file && file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    dropZone.style.display = 'none';
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block'; 
+                };
+                reader.readAsDataURL(file);
+                button.classList.remove("d-none");
+                buttonSec.classList.remove("d-none");
+            } else {
+                alert("Por favor, selecciona una imagen.");
+            }
+        }
+    </script>
+</body>
+</html>
